@@ -1,15 +1,26 @@
 # Made by Kim.Seung.Hwan / ksana1215@interminds.ai
 # -*- coding: utf-8 -*-
+import base64
+import json
+import os
+
+import requests
 import serial
 import redis
 import datetime
 import logging
-import config
+# import config
 import urllib3
 import request_main
 import ctypes
-cf_path = config.path['path']
-cf_scanner_port = config.refrigerators['scanner']
+import configparser
+
+config = configparser.ConfigParser()
+config.read(os.path.join(os.path.split(__file__)[0],'config.ini'))
+cf_path = config['path']['path']
+storeId = config['refrigerators']['storeId']
+cf_scanner_port = config['refrigerators']['scanner']
+deviceId = config['refrigerators']['deviceId']
 rd = redis.StrictRedis(host='localhost', port=6379, db=0)
 Scanner = serial.Serial(port=cf_scanner_port, baudrate=9600, timeout=1)
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
@@ -31,14 +42,52 @@ def pass_auth(barcode):
         result = response.split(' ')[24][10:14]  # No.27 = 응답메세지
         if result == '0000':
             rd.set('msg', 'sign')
-            logger.info(
-                f'[{log_time} | DLL PosSend2 Success | NVCAT result code : {result}]')
+            logger.info(f'[{log_time} | NVCAT result code : {result}]')
         else:
             rd.set('msg', 'auth_fail')
-            logger.info(f'[{log_time} | Auth Fail | NVCAT result code : {result}]')
+            logger.info(f'[{log_time} | NVCAT result code : {result}]')
     else:
         rd.set('msg', 'auth_fail')
         logger.info(f'[{log_time} | DLL PosSend2 Fail]')
+
+def auth_mobile_id():
+    try:
+        data = {
+            "cmd": 520,             # QR-CPM - 520 고정
+            "m120Base64": barcode,
+            "svcCode": "zkp.1",     # zkp.1 - 성인여부 제출 고정
+            "branchName": storeId,
+            "deviceId": deviceId
+        }
+        vo = {
+            'result': False,
+            'data': str(base64.b64encode(json.dumps(data).encode()), 'utf-8')
+        }
+
+        response = requests.post("http://localhost:8281/qrcpm/start", data=json.dumps(vo),
+                            headers={"Content-Type": "application/json; charset=utf-8"}, timeout=40)
+
+        res = response.json()
+        res_result = res["result"]
+        res_data = json.loads(base64.b64decode(res["data"]))
+        page = rd.get('nowPage')
+        if page == b'wait_mobileid':
+            if res_result:
+                if res_data["vpVerifyResult"] == "Y":
+                    rd.set('msg', 'sign')
+                    logger.info(f'[{log_time}]' + f'[Mobile ID Auth Success] : {res_data}')
+                else:
+                    rd.set('msg', 'auth_fail')
+                    logger.info(f'[{log_time}]' + f'[Mobile ID Auth Fail] : {res_data}')
+            else:
+                rd.set('msg', 'auth_fail')
+                logger.info(f'[{log_time}]' + f"[SP Server Access Fail] : {res_data}")
+
+    except Exception as e:
+        logger.info(f'[{log_time}]' + f"[SP Server Access ERROR] : {e}")
+        page = rd.get('nowPage')
+        if page == b'auth_adult' or page == b'wait_mobileid':
+            rd.set('msg', 'auth_fail')
 
 while True:
     try:
@@ -54,7 +103,15 @@ while True:
             rd.set('door', 'admin')
         #PASS앱 성인 인증
         if len(barcode) > 0 and page == b'auth_adult':
-            pass_auth(barcode)
+            if 20 < len(barcode) < 25:
+                pass_auth(barcode)
+            elif len(barcode) > 100:
+                rd.set('msg','mobile_id')
+                rd.set('nowPage', 'wait_mobileid')
+                auth_mobile_id()
+            else:
+                logger.info(f'[{log_time}] Auth Fail Barcode: {barcode}')
+                rd.set('msg', 'auth_fail')
 
     except Exception as err:
         rd.set('err_type', 'except')

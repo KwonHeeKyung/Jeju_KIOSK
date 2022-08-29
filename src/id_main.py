@@ -1,12 +1,18 @@
+import os
+
 import serial
 import datetime
 import redis
 import logging
 import urllib3
-import config
+# import config
+import configparser
 import request_main
-cf_path = config.path['path']
-cf_idcard_port = config.refrigerators['idcard']
+
+config = configparser.ConfigParser()
+config.read(os.path.join(os.path.split(__file__)[0],'config.ini'))
+cf_path = config['path']['path']
+cf_idcard_port = config['refrigerators']['idcard']
 rd = redis.StrictRedis(host='localhost', port=6379, db=0)
 ser = serial.Serial(port=cf_idcard_port, baudrate=115200, timeout=1)
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
