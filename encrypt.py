@@ -1,7 +1,7 @@
 import os
 import argparse
 
-# 실행방법 : python .\encrypt.py -target C:\Users\kwon\Desktop\ProjectTest\KIOSK_IMD\src
+# 실행방법 : python .\encrypt.py -target C:\Users\kwon\Desktop\Jeju_KIOSK\src
 
 
 parser = argparse.ArgumentParser(formatter_class=argparse.RawTextHelpFormatter)
@@ -31,7 +31,7 @@ def search(dirname):
                 ext = os.path.splitext(full_filename)[-1]
                 if ext == '.py':
                     if filename == 'config.py' or filename == 'encrypt.py' or filename == 'start.py': pass
-                    elif filename == 'auth_main.py' or filename == 'id_main.py': pass # DLL때문에 오류나서 auth_main.py도 암호화하지 않음.
+                    elif filename == 'auth_main.py' or filename == 'id_main.py' or filename == 'taskkill.py': pass # DLL때문에 오류나서 auth_main.py도 암호화하지 않음.
                     else:
                         print(filename)
                         os.system("pyarmor obfuscate --exact " + full_filename)

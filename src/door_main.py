@@ -5,17 +5,13 @@ import serial
 import redis
 import logging
 import datetime
-# import config
+import config
 import urllib3
 from playsound import playsound
 import request_main
-import configparser
 
-config = configparser.ConfigParser()
-config.read(os.path.join(os.path.split(__file__)[0],'config.ini'))
-
-cf_path = config['path']['path']
-cf_door_port = config['refrigerators']['door']
+cf_path = config.path['path']
+cf_door_port = config.refrigerators['door']
 rd = redis.StrictRedis(host='localhost', port=6379, db=0)
 Arduino = serial.Serial(port=cf_door_port, baudrate=9600, timeout=0.1)
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
