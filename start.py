@@ -1,12 +1,14 @@
 import datetime
 import subprocess
-import src.config as config
+import configparser
 import time
 import redis
 import urllib3
 import logging
 
-cf_path = config.path['path']
+config = configparser.ConfigParser()
+config.read('src/config.ini')
+cf_path = config['path']['path']
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 logging.getLogger("urllib3").setLevel(logging.WARNING)
 logging.basicConfig(filename=cf_path + 'kiosk_status.log', level=logging.DEBUG)
@@ -22,8 +24,8 @@ if __name__ == '__main__':
     auth_main = subprocess.Popen("python -u ./src/auth_main.py", creationflags=0x08000000)
     # id_main = subprocess.Popen("python -u ./src/id_main.py", creationflags=0x08000000)
 
-    app_main = subprocess.Popen("python -u ./src/app_main.py", creationflags=0x08000000)
-    # app_main = subprocess.Popen("python -u ./src/adult_app_main.py", creationflags=0x08000000)
+    # app_main = subprocess.Popen("python -u ./src/app_main.py", creationflags=0x08000000)
+    app_main = subprocess.Popen("python -u ./src/adult_app_main.py", creationflags=0x08000000)
 
     re_time = datetime.datetime.now()
 
