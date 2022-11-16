@@ -179,6 +179,6 @@ while True:
                 ck_check()
                 rd.set('msg', 'remove')
     except Exception as err:
-        rd.set('msg', '003')
-        logger.info('[PAYMENT FAIL]')
-        logger.info(err)
+        logger.info(f'[{log_time} | PAYMENT FAIL]' + '\n' + err)
+        rd.set('err_type', 'unknown')
+        request_main.device_err()
