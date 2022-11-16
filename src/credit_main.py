@@ -135,7 +135,9 @@ def payment():
                         f'[본거래 취소전문 : {refund_param}]')
         elif pay_data['RS04'] == '8035':
             rd.set('msg', 'no_money')
+            rd.set('err_type', 'payment')
             logger.info(f'[{log_time} | 체크카드 잔액부족]')
+            request_main.device_err()
         elif pay_data['RS04'] == '8350':
             rd.set('msg', '003')
             logger.info(f'[{log_time} | 도난 분실카드]')
