@@ -54,9 +54,9 @@ def pass_auth(barcode):
 def auth_mobile_id():
     try:
         data = {
-            "cmd": 520,             # QR-CPM - 520 고정
+            "cmd": 520,  # QR-CPM - 520 고정
             "m120Base64": barcode,
-            "svcCode": "zkp.1",     # zkp.1 - 성인여부 제출 고정
+            "svcCode": "zkp.1",  # zkp.1 - 성인여부 제출 고정
             "branchName": storeId,
             "deviceId": deviceId
         }
@@ -65,9 +65,13 @@ def auth_mobile_id():
             'data': str(base64.b64encode(json.dumps(data).encode()), 'utf-8')
         }
 
-        response = requests.post("http://localhost:8281/qrcpm/start", data=json.dumps(vo),
-                            headers={"Content-Type": "application/json; charset=utf-8"}, timeout=40)
+        header = {
+            "x-api-key": 'I4xpbPaYR15ol1bk6tNPM9KaX5Qj67ZB7xYGps4d',
+            "Content-Type": "application/json; charset=utf-8"
+        }
 
+        response = requests.post("https://im.interminds-sr.com/qrcpm/start", data=json.dumps(vo),
+                                 headers=header, timeout=40)
         res = response.json()
         res_result = res["result"]
         res_data = json.loads(base64.b64decode(res["data"]))
