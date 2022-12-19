@@ -24,11 +24,11 @@ logger = logging.getLogger('UNO_LOG')
 cnt = 0
 
 while True:
+    log_time = datetime.datetime.now()
+    log_time = log_time.strftime("%Y-%m-%d-%H:%M:%S")
+    door = rd.get('door')
     try:
-        log_time = datetime.datetime.now()
-        log_time = log_time.strftime("%Y-%m-%d-%H:%M:%S")
-        door = rd.get('door')
-        uno = Arduino.readline()
+        uno = Arduino.readline().decode('utf-8').rstrip()
         #문열림
         if door == b'open':
             logger.info(f'[{log_time} | DOOR_OPEN --> CLIENT]')
@@ -56,7 +56,7 @@ while True:
             rd.set('door', 'admin_open')
             request_main.admin_open()
         #문닫힘
-        if uno == b'0\r\n':
+        if uno == '0':
             #관리자 권한
             if door == b'admin_open':
                 request_main.admin_close()
@@ -67,13 +67,14 @@ while True:
                 rd.set("msg",'infer')
                 request_main.door_close()
         #문여닫힘 에러
-        if uno == b'2\r':
+        if uno == '2':
             rd.set('err_type','except')
             request_main.device_err()
             logger.info(f'[{log_time} | DOOR LOCK ERR]')
     except Exception as err:
         rd.set('err_type', 'except')
+        rd.set('msg', 'device_err')
         request_main.device_err()
-        logger.info('[ARDUINO FAIL]')
-        logger.info(err)
+        logger.info(f'[{log_time} | ARDUINO FAIL]' + '\n' + str(err))
         break
+        
