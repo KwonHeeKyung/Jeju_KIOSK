@@ -1,33 +1,27 @@
 # Made by Kim.Seung.Hwan / ksana1215@interminds.ai
 # -*- coding: utf-8 -*-
-import os.path
-
 import redis
 import time
 import json
 import requests
 import urllib3
 import datetime
-# import config
+import config
 import logging
 
-import configparser
-
-config = configparser.ConfigParser()
-config.read(os.path.join(os.path.split(__file__)[0],'config.ini'))
-
-cf_path = config['path']['path']
-cf_company_id = config['refrigerators']['companyId']
-cf_store_id = config['refrigerators']['storeId']
-cf_device_id = config['refrigerators']['deviceId']
-cf_network_server = config['network_info']['server_request_url']
-cf_master_server = config['network_info']['raspberry_base_url']
+cf_path = config.path['path']
+cf_company_id = config.refrigerators['companyId']
+cf_store_id = config.refrigerators['storeId']
+cf_device_id = config.refrigerators['deviceId']
+cf_network_server = config.network_info['server_request_url']
+cf_master_server = config.network_info['raspberry_base_url']
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 logging.getLogger("urllib3").setLevel(logging.WARNING)
 logging.basicConfig(filename=cf_path + 'kiosk_status.log', level=logging.DEBUG)
 logger = logging.getLogger('API_LOG')
 rd = redis.StrictRedis(host='localhost', port=6379, db=0)
 msg = rd.get('msg')
+
 # 상태조회
 def check_status():
     log_time = datetime.datetime.now()
@@ -44,10 +38,9 @@ def check_status():
 
 # 문열림
 def door_open():
-    res = requests.post(f'{cf_network_server}door_opened',
+    requests.post(f'{cf_network_server}door_opened',
                         json={'companyId': cf_company_id, 'storeId': cf_store_id, 'deviceId': cf_device_id,
                               'barcode': '1234'}, verify=False)
-    return json.loads(res.text)['resultCode']
 
 # 문닫힘
 def door_close():
@@ -57,22 +50,13 @@ def door_close():
                         json={'storeId': cf_store_id, 'deviceId': cf_device_id, 'barcode': '1234',
                               "needSalesInfo": "true"}, verify=False)
     logger.info(f'[{log_time} | LET\'s INFER]' + '\n' + str(res.text))
-    if json.loads(res.text)['resultCode'] == '000':
-        order_list = {'orderList': json.loads(res.text)["data"]['orderList']}
-        if len(order_list['orderList']) > 0:
-            data = []
-            for order_list in order_list['orderList']:
-                if int(order_list['goodsCnt']) > 0:
-                    data.append(order_list)
-            ol = json.dumps(data)
-            rd.set('ol', ol)
-            rd.set('msg', 'cal')
-        elif len(order_list['orderList']) == 0:
-            rd.set('msg', 'end_none')
-    else:
+    if json.loads(res.text)['resultCode'] == '000' and len(json.loads(res.text)["data"]['orderList']) > 0:
+        rd.set('ol', json.dumps(json.loads(res.text)["data"]['orderList']))
+        rd.set('msg', 'cal')
+    elif json.loads(res.text)['resultCode'] == '000' and len(json.loads(res.text)["data"]['orderList']) == 0:
+        rd.set('msg', 'end_none')
+    if json.loads(res.text)['resultCode'] != '000' :
         rd.set('msg', '003')
-        logger.info(f'[{log_time} | INF FAIL]')
-        logger.info(res.text)
 
 # 관리자 문열림
 def admin_open():

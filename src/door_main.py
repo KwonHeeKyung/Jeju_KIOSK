@@ -1,20 +1,17 @@
 # Made by Kim.Seung.Hwan / ksana1215@interminds.ai
 # -*- coding: utf-8 -*-
 import os
+import time
 import serial
 import redis
 import logging
 import datetime
+import config
 import urllib3
 from playsound import playsound
 import request_main
-import configparser
-
-config = configparser.ConfigParser()
-config.read(os.path.join(os.path.split(__file__)[0],'config.ini'))
-
-cf_path = config['path']['path']
-cf_door_port = config['refrigerators']['door']
+cf_path = config.path['path']
+cf_door_port = config.refrigerators['door']
 rd = redis.StrictRedis(host='localhost', port=6379, db=0)
 Arduino = serial.Serial(port=cf_door_port, baudrate=9600, timeout=0.1)
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
@@ -28,14 +25,14 @@ while True:
     log_time = log_time.strftime("%Y-%m-%d-%H:%M:%S")
     door = rd.get('door')
     try:
-        uno = str(Arduino.readline().decode('utf-8').rstrip())
-        #문열림
+        uno = Arduino.readline()
+        # 문열림
         if door == b'open':
             logger.info(f'[{log_time} | DOOR_OPEN --> CLIENT]')
             Arduino.write(str('1').encode('utf-8'))
-            rd.set('door','customer')
+            rd.set('door', 'customer')
             request_main.door_open()
-        #100초 알림
+        # 100초 알림
         elif door == b'customer' or door == b'admin_open':
             cnt += 1
             if cnt > 3000:
@@ -50,31 +47,29 @@ while True:
                     cnt = 0
         else:
             cnt = 0
-        #관리자 문열림
+        # 관리자 문열림
         if door == b'admin':
             Arduino.write(str('1').encode('utf-8'))
             rd.set('door', 'admin_open')
             request_main.admin_open()
-        #문닫힘
-        if uno == '0':
-            #관리자 권한
+        # 문닫힘
+        if uno == b'0\r\n':
+            # 관리자 권한
             if door == b'admin_open':
                 request_main.admin_close()
-            #고객
+            # 고객
             elif door == b'customer':
                 logger.info(f'[{log_time} | DOOR_CLOSE --> CLIENT]')
                 rd.delete('door')
-                rd.set("msg",'infer')
+                rd.set("msg", 'infer')
                 request_main.door_close()
-        #문여닫힘 에러
-        if uno == '2':
-            rd.set('err_type','except')
+        # 문여닫힘 에러
+        if uno == b'2\r':
+            rd.set('err_type', 'except')
             request_main.device_err()
             logger.info(f'[{log_time} | DOOR LOCK ERR]')
     except Exception as err:
         rd.set('err_type', 'except')
-        rd.set('msg', 'device_err')
         request_main.device_err()
         logger.info(f'[{log_time} | ARDUINO FAIL]' + '\n' + str(err))
         break
-        

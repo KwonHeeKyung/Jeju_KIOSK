@@ -1,6 +1,5 @@
 # Made by Kim.Seung.Hwan / ksana1215@interminds.ai
 # -*- coding: utf-8 -*-
-import os
 from tkinter import *
 import tkinter.font
 from tkinter import messagebox
@@ -10,19 +9,17 @@ from playsound import playsound
 import json
 import datetime
 import request_main
-# import config
-import configparser
+import config
 
-config = configparser.ConfigParser()
-config.read(os.path.join(os.path.split(__file__)[0],'config.ini'))
-#키오스크 UI
+
+# 키오스크 UI
 class Uipage:
     def __init__(self, root, rd):
         self.rd = rd
         self.root = root
         self.root.title("INTERMINDS")
         self.canvas = Canvas(self.root, height=1024, width=600)
-        self.cf_path = config['path']['path']
+        self.cf_path = config.path['path']
         self.start_img = PhotoImage(file=self.cf_path + 'asset/START.png')
         self.sign_img = PhotoImage(file=self.cf_path + 'asset/SIGN.png')
         self.card_img = PhotoImage(file=self.cf_path + 'asset/CARD_INSERT.png')
@@ -53,7 +50,7 @@ class Uipage:
         self.xold = None
         self.yold = None
 
-    #시작화면 복귀
+    # 시작화면 복귀
     def comeback(self):
         page_timer = self.rd.get('nowPage')
         if page_timer is None:
@@ -106,7 +103,7 @@ class Uipage:
             self.cnt = 0
         self.root.after(1000, self.comeback)
 
-    #터치 버튼 이벤트
+    # 터치 버튼 이벤트
     def S_BTN(self, event):
         flg = self.rd.get('nowPage')
         if flg is None:
@@ -142,15 +139,15 @@ class Uipage:
             if 210 < event.x < 380 and 900 < event.y < 990:
                 self.START_PAGE()
 
-    #시직화면
+    # 시작화면
     def START_PAGE(self):
         self.clearAllWidgets()
         self.rd.set('nowPage', 'start')
         self.canvas.create_image(0, 0, anchor=NW, image=self.start_img)
         self.canvas.pack(side="left", fill="both", expand=True)
         self.comeback()
-    
-    #정보제공동의
+
+    # 정보제공동의
     def SIGN_PAGE(self):
         self.rd.set('sign', 'o')
         self.rd.set('nowPage', 'sign')
@@ -165,7 +162,7 @@ class Uipage:
         self.draw = ImageDraw.Draw(self.signImage)
         self.comeback()
 
-    #터치 싸인 그리기 모션 1
+    # 터치 싸인 그리기 모션 1
     def b1down(self, event):
         self.b1 = "down"
 
@@ -185,29 +182,29 @@ class Uipage:
         self.xold = event.x
         self.yold = event.y
 
-    #카드 삽입 요청
+    # 카드 삽입 요청
     def CARD_PAGE(self):
         self.clearAllWidgets()
         self.rd.set('nowPage', 'card')
         self.canvas.create_image(0, 0, anchor=NW, image=self.card_img)
 
-    #카드 제거 요청
+    # 카드 제거 요청
     def REMOVE_PAGE(self):
         self.clearAllWidgets()
         self.rd.set('nowPage', 'remove')
         self.canvas.create_image(0, 0, anchor=NW, image=self.remove_img)
-    
-    #문열리고 쇼핑시작
+
+    # 문열리고 쇼핑시작
     def SHOPPING_PAGE(self):
         self.rd.set('nowPage', 'shopping')
         self.canvas.create_image(0, 0, anchor=NW, image=self.shop_img)
 
-    #문닫히고 인퍼런스
+    # 문닫히고 인퍼런스
     def INF_PAGE(self):
         self.rd.set('nowPage', 'inf')
         self.canvas.create_image(0, 0, anchor=NW, image=self.inf_img)
 
-    #영수증 화면
+    # 영수증 화면
     def END(self):
         order_list = json.loads(self.rd.get('ol'))
         self.rd.set('nowPage', 'end')
@@ -243,54 +240,54 @@ class Uipage:
         self.rd.set('box', 'o')
         self.comeback()
 
-    #아무것도 안삼
+    # 아무것도 안삼
     def END_NONE(self):
         self.rd.set('nowPage', 'end_none')
         self.canvas.create_image(0, 0, anchor=NW, image=self.end_none_img)
         self.comeback()
 
-    #상태조회 오류
+    # 상태조회 오류
     def FAIL_PAGE(self):
         self.rd.set('nowPage', 'fail')
         self.canvas.create_image(0, 0, anchor=NW, image=self.fail_img)
         self.comeback()
 
-    #키오스크 장치 오류
+    # 키오스크 장치 오류
     def DEVICE_ERR_PAGE(self):
         self.clearAllWidgets()
         self.rd.set('nowPage', 'device_err')
         self.canvas.create_image(0, 0, anchor=NW, image=self.device_err_img)
 
-    #현대,하나카드 거절
+    # 현대,하나카드 거절
     def HH_DENY(self):
         self.rd.set('nowPage', 'hh_deny')
         self.canvas.create_image(0, 0, anchor=NW, image=self.hh_deny_img)
         self.comeback()
 
-    #삼성페이 거절
+    # 삼성페이 거절
     def SSPAY_DENY(self):
         self.rd.set('nowPage', 'sspay_deny')
         self.canvas.create_image(0, 0, anchor=NW, image=self.sspay_deny_img)
         self.comeback()
 
-    #결제 실패
+    # 결제 실패
     def PAYMENT_FAIL_PAGE(self):
         self.rd.set('nowPage', 'fail')
         self.canvas.create_image(0, 0, anchor=NW, image=self.payment_fail_img)
         self.comeback()
 
-    #잔액부족
+    # 잔액부족
     def NO_MONEY(self):
         self.rd.set('nowPage', 'no_money')
         self.canvas.create_image(0, 0, anchor=NW, image=self.no_money_img)
         self.comeback()
 
-    #관리자 권한 점유
+    # 관리자 권한 점유
     def ADMIN_PAGE(self):
         self.rd.set('nowPage', 'admin')
         self.canvas.create_image(0, 0, anchor=NW, image=self.admin_img)
 
-    #페이지 루프
+    # 페이지 루프
     def readRedis(self):
         try:
             msg = self.rd.get("msg")
@@ -378,11 +375,11 @@ class Uipage:
             pass
         self.root.after(1000, self.readRedis)
 
-    #음성안내
+    # 음성안내
     def playWav(self, audio_file):
         playsound(self.cf_path + 'voice/' + audio_file + ".mp3", False)
 
-    #위젯 초기화
+    # 위젯 초기화
     def clearAllWidgets(self):
         if self.rd.get('box') == b'o':
             self.orderAmtLabel.place_forget()

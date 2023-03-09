@@ -3,25 +3,22 @@
 import base64
 import json
 import os
-
+import time
 import requests
 import serial
 import redis
 import datetime
 import logging
-# import config
+import config
 import urllib3
 import request_main
 import ctypes
-import configparser
 
-config = configparser.ConfigParser()
-config.read(os.path.join(os.path.split(__file__)[0],'config.ini'))
-cf_path = config['path']['path']
-storeId = config['refrigerators']['storeId']
-cf_scanner_port = config['refrigerators']['scanner']
-deviceId = config['refrigerators']['deviceId']
-companyId = config['refrigerators']['companyId']
+cf_path = config.path['path']
+storeId = config.refrigerators['storeId']
+cf_scanner_port = config.refrigerators['scanner']
+deviceId = config.refrigerators['deviceId']
+companyId = config.refrigerators['companyId']
 rd = redis.StrictRedis(host='localhost', port=6379, db=0)
 Scanner = serial.Serial(port=cf_scanner_port, baudrate=9600, timeout=1)
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
@@ -33,8 +30,9 @@ NICEPOS = ctypes.windll.LoadLibrary(cf_path + 'DLL/NICEPOSICV105.dll')
 def pass_auth(barcode):
     blank = ' '
     cat_id = '3946768'
+    blank_len = 127 - len(barcode)
     req_data = bytes(
-        f'0437MDL{cat_id}0010000000000020010H1{blank * 10}{cat_id}001L{barcode}={blank * 102}00{blank * 24}1012002{blank * 5}1043003{blank * 192}',
+        f'0437MDL{cat_id}0010000000000020010H1{blank * 10}{cat_id}001Q{barcode}{blank * blank_len}00{blank * 24}1012002{blank * 5}1043003{blank * 192}',
         'utf-8')
     NVCAT = NICEPOS.PosSend2(b'211.33.136.2', 4141, req_data, b'NULL', b'NULL', b'NULL')  # 나정통 DLL 함수 호출
     if NVCAT == 1:
@@ -54,9 +52,9 @@ def pass_auth(barcode):
 def auth_mobile_id():
     try:
         data = {
-            "cmd": 520,  # QR-CPM - 520 고정
+            "cmd": 520,             # QR-CPM - 520 고정
             "m120Base64": barcode,
-            "svcCode": "zkp.1",  # zkp.1 - 성인여부 제출 고정
+            "svcCode": "zkp.1",     # zkp.1 - 성인여부 제출 고정
             "branchName": storeId,
             "deviceId": deviceId
         }
@@ -72,6 +70,7 @@ def auth_mobile_id():
 
         response = requests.post("https://im.interminds-sr.com/qrcpm/start", data=json.dumps(vo),
                                  headers=header, timeout=40)
+
         res = response.json()
         res_result = res["result"]
         res_data = json.loads(base64.b64decode(res["data"]))
@@ -93,7 +92,6 @@ def auth_mobile_id():
         page = rd.get('nowPage')
         if page == b'mobile_auth' or page == b'wait_mobileid':
             rd.set('msg', 'auth_fail')
-
 
 def rrn_auth():
     try:
@@ -126,6 +124,7 @@ def rrn_auth():
 
     except Exception as e:
         logger.info(f'[{log_time}]' + f"[RRN API SEND ERROR] : {e}")
+        logger.info(f'barcode: {barcode}')
         rd.set('msg', 'auth_fail')
 
 while True:
